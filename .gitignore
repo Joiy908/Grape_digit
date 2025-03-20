@@ -1,0 +1,4 @@
+.archVenv
+.winVenv
+.env
+__pycache__
