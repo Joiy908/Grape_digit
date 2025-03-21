@@ -125,3 +125,37 @@ virtual_soil_moisture_sensor = VirtualSensor(soil_moisture_model, {
     "fitted_params": fitted_params,
     "noise_std": 0.05
 })
+
+def generate_line_protocol_file(filename="2024_now_environment_data.txt"):
+    start_time = datetime(2024, 1, 1, 0, 0, 0)
+    end_time = datetime.now()
+    interval = timedelta(minutes=60)
+
+    sensors = [
+        ("v_temp_1", "temperature", virtual_temp_sensor),
+        ("v_humidity_1", "humidity", virtual_humidity_sensor),
+        ("v_light_1", "light_intensity", virtual_light_sensor),
+        ("v_soil_temp_1", "soil_temperature", virtual_soil_temp_sensor),
+        ("v_wind_1", "wind_speed", virtual_wind_speed_sensor),
+        ("v_soil_moisture_1", "soil_moisture", virtual_soil_moisture_sensor)
+    ]
+
+    with open(filename, "w") as f:
+        current_time = start_time
+        while current_time <= end_time:
+            # 将 datetime 转换为纳秒时间戳 (Unix epoch)
+            timestamp_ns = int(current_time.timestamp() * 1_000_000_000)
+            
+            for sensor_id, field_name, sensor in sensors:
+                value = sensor.get_value(current_time)
+                # 格式化 Line Protocol 行
+                line = f"env_data,sensor_id={sensor_id} {field_name}={value:.6f} {timestamp_ns}\n"
+                f.write(line)
+            
+            current_time += interval
+
+    print(f"Line Protocol 文件已生成：{filename}")
+
+# 调用函数生成文件
+if __name__ == "__main__":
+    generate_line_protocol_file()
