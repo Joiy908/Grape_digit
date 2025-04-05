@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 120
+
+select = [         # 选择的规则
+    "F",
+    "E",
+    "W",
+    "UP",
+    "I",
+    "SIM"
+]
