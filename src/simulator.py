@@ -109,10 +109,7 @@ def soil_temperature_model(dt):
 # Wind speed model with fixed parameters
 def wind_speed_model(dt):
     """Wind speed model with monthly average, diurnal variation, and noise."""
-    monthly_data = {
-        1: 6.7, 2: 6.9, 3: 7.2, 4: 7.5, 5: 7.7, 6: 7.9,
-        7: 7.7, 8: 7.3, 9: 6.7, 10: 6.4, 11: 6.5, 12: 7.0
-    }
+    monthly_data = {1: 6.7, 2: 6.9, 3: 7.2, 4: 7.5, 5: 7.7, 6: 7.9, 7: 7.7, 8: 7.3, 9: 6.7, 10: 6.4, 11: 6.5, 12: 7.0}
     A_diurnal_W = 2.5  # Diurnal amplitude (mph)
     t_max_W = 14  # Peak time of day (2 PM)
     noise_std = 1  # Noise standard deviation
@@ -141,42 +138,42 @@ def soil_moisture_model(dt):
 
 
 # Define virtual sensors with fixed model parameters
-virtual_temp_sensor = VirtualSensor("v_temp_1", temperature_model)
-virtual_humidity_sensor = VirtualSensor("v_humidity_1", humidity_model)
-virtual_light_sensor = VirtualSensor("v_light_1", light_model)
-virtual_soil_temp_sensor = VirtualSensor("v_soil_temp_1", soil_temperature_model)
-virtual_wind_speed_sensor = VirtualSensor("v_wind_1", wind_speed_model)
-virtual_soil_moisture_sensor = VirtualSensor("v_soil_moisture_1", soil_moisture_model)
+virtual_temp_sensor = VirtualSensor('v_temp_1', temperature_model)
+virtual_humidity_sensor = VirtualSensor('v_humidity_1', humidity_model)
+virtual_light_sensor = VirtualSensor('v_light_1', light_model)
+virtual_soil_temp_sensor = VirtualSensor('v_soil_temp_1', soil_temperature_model)
+virtual_wind_speed_sensor = VirtualSensor('v_wind_1', wind_speed_model)
+virtual_soil_moisture_sensor = VirtualSensor('v_soil_moisture_1', soil_moisture_model)
 
 
 # Generate Line Protocol file
-def generate_line_protocol_file(filename="data/2024_now_environment_data.txt"):
+def generate_line_protocol_file(filename='data/2024_now_environment_data.txt'):
     start_time = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     end_time = datetime.now(timezone.utc)
     interval = timedelta(minutes=60)
 
     sensors = [
-        ("temperature", virtual_temp_sensor),
-        ("humidity", virtual_humidity_sensor),
-        ("light_intensity", virtual_light_sensor),
-        ("soil_temperature", virtual_soil_temp_sensor),
-        ("wind_speed", virtual_wind_speed_sensor),
-        ("soil_moisture", virtual_soil_moisture_sensor)
+        ('temperature', virtual_temp_sensor),
+        ('humidity', virtual_humidity_sensor),
+        ('light_intensity', virtual_light_sensor),
+        ('soil_temperature', virtual_soil_temp_sensor),
+        ('wind_speed', virtual_wind_speed_sensor),
+        ('soil_moisture', virtual_soil_moisture_sensor),
     ]
 
-    with open(filename, "w") as f:
+    with open(filename, 'w') as f:
         current_time = start_time
         while current_time <= end_time:
             timestamp_ns = int(current_time.timestamp() * 1_000_000_000)
             for field_name, sensor in sensors:
                 value = sensor.get_value(current_time)
-                line = f"env_data,sensor_id={sensor.id} {field_name}={value:.6f} {timestamp_ns}\n"
+                line = f'env_data,sensor_id={sensor.id} {field_name}={value:.6f} {timestamp_ns}\n'
                 f.write(line)
             current_time += interval
 
-    print(f"Line Protocol file generated: {filename}")
+    print(f'Line Protocol file generated: {filename}')
 
 
 # Run the script
-if __name__ == "__main__":
+if __name__ == '__main__':
     generate_line_protocol_file()

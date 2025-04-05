@@ -9,3 +9,5 @@ select = [         # 选择的规则
     "I",
     "SIM"
 ]
+[tool.ruff.format]
+quote-style = "single"
