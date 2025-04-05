@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
     import schedule
 
-    schedule.every().hours.do(write_to_influxdb)
+    schedule.every(15).seconds.do(write_to_influxdb)
     while True:
         schedule.run_pending()
-        time.sleep(10)
+        time.sleep(1)
