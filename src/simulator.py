@@ -3,6 +3,10 @@ import random
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 
+from influxdb_client import Point
+
+from .influxdb import INFLUXDB_BUCKET, INFLUXDB_ORG, write_api
+
 
 # Base Sensor class
 class Sensor(ABC):
@@ -174,6 +178,36 @@ def generate_line_protocol_file(filename='data/2024_now_environment_data.txt'):
     print(f'Line Protocol file generated: {filename}')
 
 
+def write_to_influxdb():
+    current_time = datetime.now(timezone.utc)
+
+    sensors = [
+        ('temperature', virtual_temp_sensor),
+        ('humidity', virtual_humidity_sensor),
+        ('light_intensity', virtual_light_sensor),
+        ('soil_temperature', virtual_soil_temp_sensor),
+        ('wind_speed', virtual_wind_speed_sensor),
+        ('soil_moisture', virtual_soil_moisture_sensor),
+    ]
+
+    for field_name, sensor in sensors:
+        value = sensor.get_value(current_time)
+        point = (
+            Point('env_data').tag('sensor_id', sensor.id).field(field_name, float(f'{value:.6f}')).time(current_time)
+        )
+        write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=point)
+
+    print(f'Written data at {current_time.isoformat()}')
+
+
 # Run the script
 if __name__ == '__main__':
-    generate_line_protocol_file()
+    # generate_line_protocol_file()
+    import time
+
+    import schedule
+
+    schedule.every().hours.do(write_to_influxdb)
+    while True:
+        schedule.run_pending()
+        time.sleep(10)
