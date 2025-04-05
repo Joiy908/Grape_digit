@@ -6,6 +6,7 @@ from influxdb_client import Point
 from pydantic import AwareDatetime, BaseModel
 
 from .influxdb import INFLUXDB_BUCKET, query_api, write_api
+from .tools import utc_to_shanghai_time
 
 app = FastAPI()
 
@@ -21,32 +22,28 @@ SENSOR_FIELDS = {
 }
 
 
-def to_shanghai_time(utc_time):
-    return utc_time + timedelta(hours=8)
-
-
 @app.get('/api/v1/sensors/values')
 def get_all_sensor_values():
     flux_query = f"""
     from(bucket: "{INFLUXDB_BUCKET}")
-      |> range(start: -35h)
+      |> range(start: -1h)
       |> filter(fn: (r) => r._measurement == "env_data")
       |> filter(fn: (r) => r.sensor_id =~ /v_/ or r.sensor_id =~ /r_/)
       |> last()
       |> pivot(rowKey: ["_time"], columnKey: ["sensor_id", "_field"], valueColumn: "_value")
     """
-    print(flux_query)
+    # print(flux_query)
 
     try:
         result = query_api.query(query=flux_query)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f'Failed to query sensor data: {str(e)}')
-    print(result)
+    # print(result)
     data = []
     if result and len(result) > 0:
         row = result[0].records[0]
-        shanghai_time = to_shanghai_time(row.get_time()).isoformat()
-        print(row.values)
+        shanghai_time = utc_to_shanghai_time(row.get_time())
+        # print(row.values)
 
         for sensor_id, field in SENSOR_FIELDS.items():
             column_name = f'{sensor_id}_{field}'
@@ -116,7 +113,7 @@ async def get_records(params: Annotated[GetRecordsParams, Query()]):
                     'type': record.values['type'],
                     'amount': record.values['amount'],
                     'details': record.values['details'],
-                    'timestamp': to_shanghai_time(record.get_time()),
+                    'timestamp': utc_to_shanghai_time(record.get_time()),
                 }
             )
 

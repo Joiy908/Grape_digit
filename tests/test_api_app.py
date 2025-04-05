@@ -1,15 +1,16 @@
 import unittest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
 from src.api_app import app  # Replace 'your_app_file' with actual filename
+from src.tools import utc_to_shanghai_time
 
 
 class APITestCase(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
-        self.valid_timestamp = datetime.now(timezone.utc).isoformat()
+        self.valid_timestamp: str = utc_to_shanghai_time(datetime.now(timezone.utc))
 
     def test_create_record_success(self):
         # Test successful record creation
