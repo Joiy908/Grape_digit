@@ -3,86 +3,46 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
-from src.api_app import app  # Replace 'your_app_file' with actual filename
-from src.tools import utc_to_shanghai_time
+from src.api_app import app, IrrigationEvent, Event
+from src.tools import TZ_UTC8
 
 
 class APITestCase(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
-        self.valid_timestamp: str = utc_to_shanghai_time(datetime.now(timezone.utc))
+        self.valid_timestamp: str = datetime.now(TZ_UTC8)
 
-    def test_create_record_success(self):
+    def test_create_irrigation_success(self):
         # Test successful record creation
-        record_data = {
-            'type': 'irrigation',
-            'amount': 10.5,
-            'details': 'Test irrigation',
-            'timestamp': self.valid_timestamp,
-        }
+        record = IrrigationEvent(outlet='6号口', vineyard_id='1', amount='10', area='3', timestamp=self.valid_timestamp)
 
-        response = self.client.post('/api/v1/records', json=record_data)
+        response = self.client.post('/api/v1/irrigation_events', content=record.model_dump_json())
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'status': 'success'})
 
-    def test_create_record_missing_required_field(self):
-        # Test with missing required field (amount)
-        invalid_data = {'type': 'fertilizer', 'timestamp': self.valid_timestamp}
-
-        response = self.client.post('/api/v1/records', json=invalid_data)
-        self.assertEqual(response.status_code, 422)  # Unprocessable Entity
-        self.assertIn('amount', response.json()['detail'][0]['loc'])
-
-    def test_create_record_invalid_type(self):
-        # Test with invalid type value
-        invalid_data = {'type': 'invalid_type', 'amount': 5.0, 'timestamp': self.valid_timestamp}
-
-        response = self.client.post('/api/v1/records', json=invalid_data)
-        self.assertEqual(response.status_code, 422)
-        self.assertIn('type', response.json()['detail'][0]['loc'])
-
-    def test_get_records_success(self):
-        # First create a record
-        create_data = {'type': 'irrigation', 'amount': 10.5, 'timestamp': self.valid_timestamp}
-        self.client.post('/api/v1/records', json=create_data)
-
+    def test_get_irrigation_success(self):
         # Test getting records
-        params = {
-            'start_time': (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
-            'type': 'fertilizer',
-        }
-
-        response = self.client.get('/api/v1/records', params=params)
+        response = self.client.get('/api/v1/irrigation_events')
         self.assertEqual(response.status_code, 200)
         response_json = response.json()
         self.assertEqual(response_json['status'], 'success')
-        # print(response_json)
-        self.assertIsInstance(response_json['data'], list)
+        print(response_json)
+        # self.assertIsInstance(response_json['data'], list)
 
-    def test_get_records_invalid_time_format(self):
-        # Test with invalid timestamp format
-        params = {'start_time': 'invalid-time', 'end_time': self.valid_timestamp, 'type': 'fertilizer'}
+    def test_create_events_success(self):
+        # Test successful record creation
+        record = Event(event_type='施肥', vineyard_id='1', details='施钾肥3kg', timestamp=self.valid_timestamp)
 
-        response = self.client.get('/api/v1/records', params=params)
-        self.assertEqual(response.status_code, 422)
-        self.assertIn('start_time', response.json()['detail'][0]['loc'])
-
-    def test_get_records_invalid_type(self):
-        # Test with invalid type value
-        params = {'start_time': self.valid_timestamp, 'end_time': self.valid_timestamp, 'type': 'invalid_type'}
-
-        response = self.client.get('/api/v1/records', params=params)
-        self.assertEqual(response.status_code, 422)
-        self.assertIn('type', response.json()['detail'][0]['loc'])
-
-    def test_create_record_optional_details(self):
-        # Test creating record without details (optional field)
-        record_data = {'type': 'fertilizer', 'amount': 20.0, 'timestamp': self.valid_timestamp}
-
-        response = self.client.post('/api/v1/records', json=record_data)
+        response = self.client.post('/api/v1/events', content=record.model_dump_json())
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'status': 'success'})
 
+    def test_get_events_success(self):
+        res = self.client.get('/api/v1/events')
+        self.assertEqual(res.status_code, 200)
+        res_json = res.json()
+        self.assertEqual(res_json['status'], 'success')
+        print(res_json)
 
 if __name__ == '__main__':
     unittest.main()

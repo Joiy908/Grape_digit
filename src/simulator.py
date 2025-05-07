@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from influxdb_client import Point
 
 from .influxdb import INFLUXDB_BUCKET, INFLUXDB_ORG, write_api
+from .tools import TZ_UTC8, assert_china_time, assert_timezone_aware
 
 
 # Base Sensor class
@@ -26,17 +27,23 @@ class VirtualSensor(Sensor):
         self.model_func = model_func
 
     def get_value(self, dt):
+        "dt must be timezone-aware"
+        # check if dt is UTC+8
+        assert_timezone_aware(dt)
+        dt = dt.astimezone(TZ_UTC8)  # Convert to Shanghai time (UTC+8)
         return self.model_func(dt)
 
 
 # Helper functions
 def get_time_of_day(dt: datetime):
     """Return time of day in hours (0-23.999) for datetime dt."""
+    assert_china_time(dt)
     return dt.hour + dt.minute / 60 + dt.second / 3600
 
 
 def hours_since_epoch(dt):
     """Convert datetime to hours since 2000-01-01 00:00."""
+    assert_china_time(dt)
     epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
     return (dt - epoch).total_seconds() / 3600
 
@@ -44,6 +51,7 @@ def hours_since_epoch(dt):
 # Temperature model with fixed parameters
 def temperature_model(dt):
     """Air temperature model with diurnal, seasonal variation and noise."""
+    assert_china_time(dt)
     T_mean = 10  # Average temperature (°C)
     A_diurnal = 7  # Diurnal amplitude (°C)
     t_max_diurnal = 13  # Peak time of day (1 PM)
@@ -62,6 +70,7 @@ def temperature_model(dt):
 # Humidity model with fixed parameters
 def humidity_model(dt):
     """Humidity model with diurnal variation and noise."""
+    assert_china_time(dt)
     H_mean = 60  # Average humidity (%)
     A_diurnal_H = 20  # Diurnal amplitude (%)
     t_max_H = 4  # Peak time of day (4 AM)
@@ -76,6 +85,7 @@ def humidity_model(dt):
 # Light intensity model with fixed parameters
 def light_model(dt):
     """Light intensity model with daylight variation and noise."""
+    assert_china_time(dt)
     max_light = 1000  # Maximum light intensity (lux)
     sunrise = 6  # Sunrise time (6 AM)
     sunset = 18  # Sunset time (6 PM)
@@ -94,6 +104,7 @@ def light_model(dt):
 # Soil temperature model with fixed parameters
 def soil_temperature_model(dt):
     """Soil temperature model with lag, seasonal variation and noise."""
+    assert_china_time(dt)
     T_mean_soil = 15  # Average soil temperature (°C)
     A_diurnal_soil = 5  # Diurnal amplitude (°C)
     t_max_diurnal_air = 14  # Peak air temp time (2 PM)
@@ -113,6 +124,7 @@ def soil_temperature_model(dt):
 # Wind speed model with fixed parameters
 def wind_speed_model(dt):
     """Wind speed model with monthly average, diurnal variation, and noise."""
+    assert_china_time(dt)
     monthly_data = {1: 6.7, 2: 6.9, 3: 7.2, 4: 7.5, 5: 7.7, 6: 7.9, 7: 7.7, 8: 7.3, 9: 6.7, 10: 6.4, 11: 6.5, 12: 7.0}
     A_diurnal_W = 2.5  # Diurnal amplitude (mph)
     t_max_W = 14  # Peak time of day (2 PM)
@@ -129,6 +141,7 @@ def wind_speed_model(dt):
 # Soil moisture model with fixed parameters
 def soil_moisture_model(dt):
     """Soil moisture model using harmonic regression with fixed parameters and noise."""
+    assert_china_time(dt)
     fitted_params = [0.2843, -0.0011, 0.0004, 0.0227, -0.0722]  # Fixed regression coefficients
     noise_std = 0.05  # Noise standard deviation
 
@@ -165,7 +178,7 @@ def generate_line_protocol_file(filename='data/2024_now_environment_data.txt'):
         ('soil_moisture', virtual_soil_moisture_sensor),
     ]
 
-    with open(filename, 'w') as f:
+    with open(filename, 'w', newline='\n') as f:
         current_time = start_time
         while current_time <= end_time:
             timestamp_ns = int(current_time.timestamp() * 1_000_000_000)
@@ -207,7 +220,7 @@ if __name__ == '__main__':
 
     import schedule
 
-    schedule.every(15).seconds.do(write_to_influxdb)
+    schedule.every(5).seconds.do(write_to_influxdb)
     while True:
         schedule.run_pending()
         time.sleep(1)
