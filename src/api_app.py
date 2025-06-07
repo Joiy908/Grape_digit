@@ -126,8 +126,9 @@ def get_irrigation_events(
     if vineyard_id:
         flux_query += f' |> filter(fn: (r) => r.vineyard_id == "{vineyard_id}")'
     flux_query += ' |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")'
-    flux_query += f' |> limit(n: {limit})'
+    flux_query += f'|> group() |> sort(columns: ["_time",], desc: true) |> limit(n: {limit})'
 
+    # print(flux_query)
     try:
         result = query_api.query(query=flux_query)
     except Exception as e:

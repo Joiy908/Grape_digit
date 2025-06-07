@@ -166,7 +166,7 @@ virtual_soil_moisture_sensor = VirtualSensor('v_soil_moisture_1', soil_moisture_
 # Generate Line Protocol file
 def generate_line_protocol_file(filename='data/2024_now_environment_data.txt'):
     start_time = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    end_time = datetime.now(timezone.utc)
+    end_time = datetime(2025, 7, 1, 0, 0, 0, tzinfo=timezone.utc)
     interval = timedelta(minutes=60)
 
     sensors = [
@@ -215,12 +215,12 @@ def write_to_influxdb():
 
 # Run the script
 if __name__ == '__main__':
-    # generate_line_protocol_file()
-    import time
+    generate_line_protocol_file()
+    # import time
 
-    import schedule
+    # import schedule
 
-    schedule.every(5).seconds.do(write_to_influxdb)
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    # schedule.every(5).seconds.do(write_to_influxdb)
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(1)
